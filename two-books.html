@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Two Books</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@500;600;700&display=swap');
+
+  :root {
+    --ink: #000000;
+    --ink-soft: rgba(255,255,255,0.05);
+    --paper: #ffffff;
+    --paper-dim: #8a8a8a;
+    --line: #2c2c2c;
+    --green: #ffffff;
+    --green-dim: #333333;
+    --red: #ffffff;
+    --red-dim: #333333;
+    --gold: #ffffff;
+    --gold-dim: #444444;
+    --font-display: 'Barlow Condensed', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: #000000;
+  }
+
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    position: relative;
+    z-index: 1;
+  }
+
+  header.masthead {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  header.masthead .title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    color: var(--paper);
+  }
+
+  header.masthead .title span {
+    color: var(--gold);
+  }
+
+  header.masthead .date {
+    font-size: 11px;
+    color: var(--paper-dim);
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 90px;
+  }
+
+  .panel {
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--paper-dim);
+    margin: 22px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* Stat grid */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    padding: 12px;
+  }
+  .stat-card .label {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-bottom: 4px;
+  }
+  .stat-card .value {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .stat-card .value.pos { color: var(--green); }
+  .stat-card .value.neg { color: var(--red); }
+
+  /* Position / trade rows */
+  .row-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .row-card.win { border-left-style: solid; }
+  .row-card.loss { border-left-style: dashed; }
+  .row-card .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .row-card .name {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .row-card .meta {
+    font-size: 11px;
+    color: var(--paper-dim);
+    margin-top: 4px;
+  }
+  .row-card .num {
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .row-card .num.pos { color: var(--green); }
+  .row-card .num.neg { color: var(--red); }
+  .row-card .del {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    color: var(--paper-dim);
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  .gap-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .gap-card .name { font-size: 13px; margin-bottom: 6px; }
+  .gap-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .gap-row .book { color: var(--paper-dim); }
+  .gap-row .price { font-weight: 700; }
+  .gap-diff { margin-top: 6px; font-size: 12px; color: var(--gold); font-weight: 700; }
+
+  .empty {
+    color: var(--paper-dim);
+    font-size: 13px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    padding: 18px 4px;
+    border: 1px dashed var(--line);
+    text-align: center;
+  }
+
+  /* Forms */
+  .add-form {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .add-form input, .add-form textarea, .add-form select {
+    width: 100%;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  .add-form textarea { resize: vertical; min-height: 50px; }
+  .add-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    padding: 9px 14px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn { transition: transform 0.08s ease, background 0.08s ease; }
+  .btn.ghost {
+    background: transparent;
+    color: var(--paper-dim);
+    border: 1px solid var(--line);
+  }
+  .btn.ghost:active { background: rgba(255,255,255,0.08); }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--paper-dim);
+    cursor: pointer;
+  }
+  .filter-chip.active {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .sparkline-wrap {
+    margin-top: 10px;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+  }
+  .sparkline-wrap .label {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-bottom: 6px;
+  }
+  #roi-sparkline { width: 100%; height: 50px; display: block; }
+
+  .backup-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .backup-row .btn { font-size: 12px; padding: 8px 10px; }
+
+  /* Game detail modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-sheet {
+    background: #000000;
+    border-top: 1px solid var(--line);
+    width: 100%;
+    max-width: 480px;
+    max-height: 82vh;
+    overflow-y: auto;
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0));
+    animation: slideUp 0.18s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .modal-header .name {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .modal-close {
+    font-size: 20px;
+    color: var(--paper-dim);
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .game-card { cursor: pointer; }
+
+  /* Watchlist */
+  .game-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .game-card .name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .game-card .sub { font-size: 11px; color: var(--paper-dim); }
+  .game-card .del {
+    position: absolute; top: 6px; right: 8px;
+    color: var(--paper-dim); cursor: pointer; padding: 4px;
+  }
+
+  /* Notes */
+  .note-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .note-card .game { font-size: 13px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+  .note-card .text { font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
+  .note-card .del {
+    position: absolute; top: 6px; right: 8px;
+    color: var(--paper-dim); cursor: pointer; padding: 4px;
+  }
+
+  /* Checklist */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .check-item input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--gold);
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .check-item .qtext { flex: 1; font-size: 13px; line-height: 1.4; }
+  .check-item.checked .qtext { color: var(--paper-dim); text-decoration: line-through; }
+  .check-item .del { color: var(--paper-dim); cursor: pointer; flex-shrink: 0; padding: 2px; }
+
+  /* Bottom nav */
+  nav.tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 2;
+  }
+  nav.tabbar button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--paper-dim);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 12px;
+    padding: 10px 4px 8px;
+    cursor: pointer;
+    border-top: 2px solid transparent;
+    margin-top: -2px;
+  }
+  nav.tabbar button.active {
+    color: var(--gold);
+    border-top-color: var(--gold);
+  }
+  nav.tabbar button .icon {
+    display: block;
+    font-size: 17px;
+    margin-bottom: 2px;
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="app">
+  <header class="masthead">
+    <div class="title">Two <span>Books</span></div>
+    <div class="date" id="today"></div>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="panel active" id="panel-dashboard">
+      <div class="section-label">Performance</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="label">Win rate</div><div class="value" id="stat-winrate">—</div></div>
+        <div class="stat-card"><div class="label">ROI</div><div class="value" id="stat-roi">—</div></div>
+        <div class="stat-card"><div class="label">Record</div><div class="value" id="stat-record">—</div></div>
+        <div class="stat-card"><div class="label">Net P/L</div><div class="value" id="stat-pnl">—</div></div>
+      </div>
+      <div class="sparkline-wrap">
+        <div class="label">Cumulative P/L over time</div>
+        <canvas id="roi-sparkline"></canvas>
+      </div>
+
+      <div class="section-label">Open positions</div>
+      <div class="add-form">
+        <input type="text" id="pos-name" placeholder="Market / game name">
+        <div class="row2">
+          <select id="pos-book">
+            <option>Kalshi</option>
+            <option>Polymarket</option>
+          </select>
+          <input type="number" step="0.01" id="pos-stake" placeholder="Stake ($)">
+        </div>
+        <div class="row2">
+          <input type="number" step="0.01" id="pos-entry" placeholder="Entry price">
+          <input type="number" step="0.01" id="pos-value" placeholder="Current value">
+        </div>
+        <button class="btn" onclick="addPosition()">Add position</button>
+      </div>
+      <div id="positions-list"></div>
+
+      <div class="section-label">Trade history</div>
+      <div class="add-form">
+        <input type="text" id="trade-name" placeholder="Market / game name">
+        <div class="row2">
+          <select id="trade-book">
+            <option>Kalshi</option>
+            <option>Polymarket</option>
+          </select>
+          <select id="trade-result">
+            <option value="win">Win</option>
+            <option value="loss">Loss</option>
+          </select>
+        </div>
+        <input type="number" step="0.01" id="trade-pnl" placeholder="P/L ($)">
+        <button class="btn" onclick="addTrade()">Log trade</button>
+      </div>
+      <div class="filter-row" id="trade-filters">
+        <button class="filter-chip active" data-filter="all" onclick="setTradeFilter('all')">All</button>
+        <button class="filter-chip" data-filter="win" onclick="setTradeFilter('win')">Wins</button>
+        <button class="filter-chip" data-filter="loss" onclick="setTradeFilter('loss')">Losses</button>
+        <button class="filter-chip" data-filter="Kalshi" onclick="setTradeFilter('Kalshi')">Kalshi</button>
+        <button class="filter-chip" data-filter="Polymarket" onclick="setTradeFilter('Polymarket')">Polymarket</button>
+      </div>
+      <div id="trades-list"></div>
+
+      <div class="section-label">Kalshi vs Polymarket gaps</div>
+      <div class="add-form">
+        <input type="text" id="gap-name" placeholder="Market name">
+        <div class="row2">
+          <input type="number" step="0.01" id="gap-kalshi" placeholder="Kalshi price">
+          <input type="number" step="0.01" id="gap-poly" placeholder="Polymarket price">
+        </div>
+        <button class="btn" onclick="addGap()">Add price gap</button>
+      </div>
+      <div id="gaps-list"></div>
+
+      <div class="backup-row">
+        <button class="btn ghost" onclick="exportBackup()">Export backup</button>
+        <button class="btn ghost" onclick="document.getElementById('import-file').click()">Import backup</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importBackup(event)">
+      </div>
+    </section>
+
+    <!-- WATCHLIST -->
+    <section class="panel" id="panel-watchlist">
+      <div class="section-label">Games you want to bet</div>
+      <div class="add-form">
+        <input type="text" id="game-name" placeholder="Game / matchup (e.g. Lakers vs Celtics)">
+        <input type="text" id="game-when" placeholder="Date / time (optional)">
+        <button class="btn" onclick="addGame()">Add to watchlist</button>
+      </div>
+      <div id="games-list"></div>
+    </section>
+
+    <!-- NOTES -->
+    <section class="panel" id="panel-notes">
+      <div class="section-label">Notes per game</div>
+      <div class="add-form">
+        <input type="text" id="note-game" placeholder="Game / matchup this note is about">
+        <textarea id="note-text" placeholder="Your notes..."></textarea>
+        <button class="btn" onclick="addNote()">Save note</button>
+      </div>
+      <div id="notes-list"></div>
+    </section>
+
+    <!-- CHECKLIST -->
+    <section class="panel" id="panel-checklist">
+      <div class="section-label">Questions to ask before betting</div>
+      <div class="add-form">
+        <input type="text" id="check-text" placeholder="e.g. Am I chasing a loss right now?">
+        <button class="btn" onclick="addCheck()">Add question</button>
+      </div>
+      <div id="checklist-list"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="active" data-panel="dashboard" onclick="switchPanel('dashboard')">
+      <span class="icon">▤</span>Dashboard
+    </button>
+    <button data-panel="watchlist" onclick="switchPanel('watchlist')">
+      <span class="icon">☆</span>Watchlist
+    </button>
+    <button data-panel="notes" onclick="switchPanel('notes')">
+      <span class="icon">✎</span>Notes
+    </button>
+    <button data-panel="checklist" onclick="switchPanel('checklist')">
+      <span class="icon">☑</span>Checklist
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="game-detail-modal" onclick="if(event.target===this) closeGameDetail()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="name" id="detail-game-name"></div>
+      <span class="modal-close" onclick="closeGameDetail()">✕</span>
+    </div>
+
+    <div class="section-label">Notes for this game</div>
+    <div class="add-form">
+      <textarea id="detail-note-text" placeholder="Add a note for this game..."></textarea>
+      <button class="btn" onclick="addNoteFromDetail()">Save note</button>
+    </div>
+    <div id="detail-notes-list"></div>
+
+    <div class="section-label">Pre-bet checklist for this game</div>
+    <div class="add-form">
+      <input type="text" id="detail-check-text" placeholder="e.g. Am I chasing a loss right now?">
+      <button class="btn" onclick="addCheckFromDetail()">Add question</button>
+    </div>
+    <div id="detail-checklist-list"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Floating dots background ---------- */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, dots;
+  const pointer = { x: -9999, y: -9999, active: false };
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const count = Math.max(40, Math.floor((w * h) / 14000));
+    dots = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      r: Math.random() * 1.4 + 0.6
+    }));
+  }
+
+  function step() {
+    ctx.clearRect(0, 0, w, h);
+
+    for (const d of dots) {
+      d.x += d.vx;
+      d.y += d.vy;
+
+      if (pointer.active) {
+        const dx = d.x - pointer.x, dy = d.y - pointer.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 90 && dist > 0.01) {
+          const force = (90 - dist) / 90 * 0.6;
+          d.x += (dx / dist) * force;
+          d.y += (dy / dist) * force;
+        }
+      }
+
+      if (d.x < 0) d.x = w; if (d.x > w) d.x = 0;
+      if (d.y < 0) d.y = h; if (d.y > h) d.y = 0;
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < dots.length; i++) {
+      for (let j = i + 1; j < dots.length; j++) {
+        const dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 110) {
+          ctx.globalAlpha = 1 - dist / 110;
+          ctx.beginPath();
+          ctx.moveTo(dots[i].x, dots[i].y);
+          ctx.lineTo(dots[j].x, dots[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    for (const d of dots) {
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  function setPointer(x, y) {
+    pointer.x = x; pointer.y = y; pointer.active = true;
+  }
+
+  window.addEventListener('resize', resize);
+  window.addEventListener('mousemove', e => setPointer(e.clientX, e.clientY));
+  window.addEventListener('mouseleave', () => pointer.active = false);
+  window.addEventListener('touchmove', e => {
+    if (e.touches[0]) setPointer(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('touchend', () => pointer.active = false);
+
+  resize();
+  step();
+})();
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+document.getElementById('today').textContent = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+let state = {
+  positions: [],
+  trades: [],
+  gaps: [],
+  games: [],
+  notes: [],
+  checklist: []
+};
+
+let tradeFilter = 'all';
+let currentDetailGame = null;
+
+async function loadState() {
+  try {
+    const saved = localStorage.getItem('two-books-state');
+    if (saved) state = JSON.parse(saved);
+  } catch (e) {
+    console.log('No existing state, starting fresh');
+  }
+  renderAll();
+}
+
+async function saveState() {
+  try {
+    localStorage.setItem('two-books-state', JSON.stringify(state));
+  } catch (e) {
+    console.error('Save failed', e);
+  }
+}
+
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('nav.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+}
+
+function fmt(n) {
+  const v = Number(n) || 0;
+  return (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2);
+}
+
+/* ---------- Dashboard: stats ---------- */
+function renderStats() {
+  const trades = state.trades;
+  const wins = trades.filter(t => t.result === 'win').length;
+  const total = trades.length;
+  const winRate = total ? ((wins / total) * 100).toFixed(1) + '%' : '—';
+  const totalStaked = trades.reduce((s, t) => s + Math.abs(Number(t.pnl) || 0), 0);
+  const netPnl = trades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const roi = totalStaked ? ((netPnl / totalStaked) * 100).toFixed(1) + '%' : '—';
+
+  document.getElementById('stat-winrate').textContent = winRate;
+  document.getElementById('stat-roi').textContent = roi;
+  const roiEl = document.getElementById('stat-roi');
+  roiEl.className = 'value ' + (netPnl > 0 ? 'pos' : netPnl < 0 ? 'neg' : '');
+  document.getElementById('stat-record').textContent = total ? `${wins}-${total - wins}` : '—';
+  const pnlEl = document.getElementById('stat-pnl');
+  pnlEl.textContent = total ? fmt(netPnl) : '—';
+  pnlEl.className = 'value ' + (netPnl > 0 ? 'pos' : netPnl < 0 ? 'neg' : '');
+}
+
+/* ---------- Positions ---------- */
+function addPosition() {
+  const name = document.getElementById('pos-name').value.trim();
+  if (!name) return;
+  state.positions.push({
+    id: uid(),
+    name,
+    book: document.getElementById('pos-book').value,
+    stake: document.getElementById('pos-stake').value,
+    entry: document.getElementById('pos-entry').value,
+    value: document.getElementById('pos-value').value
+  });
+  ['pos-name','pos-stake','pos-entry','pos-value'].forEach(id => document.getElementById(id).value = '');
+  saveState(); renderPositions();
+}
+function removePosition(id) {
+  state.positions = state.positions.filter(p => p.id !== id);
+  saveState(); renderPositions();
+}
+function renderPositions() {
+  const el = document.getElementById('positions-list');
+  if (!state.positions.length) { el.innerHTML = '<div class="empty">No open positions yet</div>'; return; }
+  el.innerHTML = state.positions.map(p => {
+    const change = (Number(p.value) || 0) - (Number(p.entry) || 0);
+    const cls = change > 0 ? 'pos' : change < 0 ? 'neg' : '';
+    return `<div class="row-card">
+      <span class="del" onclick="removePosition('${p.id}')">✕</span>
+      <div class="top">
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="num ${cls}">${p.value ? '$' + Number(p.value).toFixed(2) : '—'}</div>
+      </div>
+      <div class="meta">${p.book} · stake $${Number(p.stake || 0).toFixed(2)} · entry ${p.entry || '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Trades ---------- */
+function addTrade() {
+  const name = document.getElementById('trade-name').value.trim();
+  if (!name) return;
+  const book = document.getElementById('trade-book').value;
+  const result = document.getElementById('trade-result').value;
+  let pnl = Number(document.getElementById('trade-pnl').value) || 0;
+  if (result === 'loss' && pnl > 0) pnl = -pnl;
+  state.trades.unshift({ id: uid(), name, book, result, pnl, ts: Date.now() });
+  document.getElementById('trade-name').value = '';
+  document.getElementById('trade-pnl').value = '';
+  saveState(); renderTrades(); renderStats(); renderSparkline();
+}
+function removeTrade(id) {
+  state.trades = state.trades.filter(t => t.id !== id);
+  saveState(); renderTrades(); renderStats(); renderSparkline();
+}
+function setTradeFilter(f) {
+  tradeFilter = f;
+  document.querySelectorAll('#trade-filters .filter-chip').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderTrades();
+}
+function renderTrades() {
+  const el = document.getElementById('trades-list');
+  let list = state.trades;
+  if (tradeFilter === 'win' || tradeFilter === 'loss') list = list.filter(t => t.result === tradeFilter);
+  else if (tradeFilter === 'Kalshi' || tradeFilter === 'Polymarket') list = list.filter(t => t.book === tradeFilter);
+  if (!list.length) { el.innerHTML = '<div class="empty">No trades match this filter</div>'; return; }
+  el.innerHTML = list.map(t => `
+    <div class="row-card ${t.result}">
+      <span class="del" onclick="removeTrade('${t.id}')">✕</span>
+      <div class="top">
+        <div class="name">${escapeHtml(t.name)}</div>
+        <div class="num ${t.pnl >= 0 ? 'pos' : 'neg'}">${fmt(t.pnl)}</div>
+      </div>
+      <div class="meta">${t.result.toUpperCase()} · ${t.book || '—'}</div>
+    </div>
+  `).join('');
+}
+
+/* ---------- ROI sparkline ---------- */
+function renderSparkline() {
+  const canvas = document.getElementById('roi-sparkline');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const ordered = [...state.trades].sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (ordered.length < 2) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+    return;
+  }
+
+  let cum = 0;
+  const points = ordered.map(t => (cum += Number(t.pnl) || 0));
+  const min = Math.min(0, ...points), max = Math.max(0, ...points);
+  const range = (max - min) || 1;
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = (i / (points.length - 1)) * w;
+    const y = h - ((p - min) / range) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  const zeroY = h - ((0 - min) / range) * h;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(0, zeroY);
+  ctx.lineTo(w, zeroY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ---------- Gaps ---------- */
+function addGap() {
+  const name = document.getElementById('gap-name').value.trim();
+  if (!name) return;
+  state.gaps.unshift({
+    id: uid(), name,
+    kalshi: document.getElementById('gap-kalshi').value,
+    poly: document.getElementById('gap-poly').value
+  });
+  document.getElementById('gap-name').value = '';
+  document.getElementById('gap-kalshi').value = '';
+  document.getElementById('gap-poly').value = '';
+  saveState(); renderGaps();
+}
+function removeGap(id) {
+  state.gaps = state.gaps.filter(g => g.id !== id);
+  saveState(); renderGaps();
+}
+function renderGaps() {
+  const el = document.getElementById('gaps-list');
+  if (!state.gaps.length) { el.innerHTML = '<div class="empty">No price gaps tracked yet</div>'; return; }
+  el.innerHTML = state.gaps.map(g => {
+    const k = Number(g.kalshi) || 0, p = Number(g.poly) || 0;
+    const diff = Math.abs(k - p);
+    return `<div class="gap-card" style="position:relative;">
+      <span class="del" style="position:absolute;top:6px;right:8px;color:var(--paper-dim);cursor:pointer;" onclick="removeGap('${g.id}')">✕</span>
+      <div class="name">${escapeHtml(g.name)}</div>
+      <div class="gap-row"><span class="book">Kalshi</span><span class="price">${g.kalshi || '—'}</span></div>
+      <div class="gap-row"><span class="book">Polymarket</span><span class="price">${g.poly || '—'}</span></div>
+      <div class="gap-diff">Gap: ${diff.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Watchlist ---------- */
+function addGame() {
+  const name = document.getElementById('game-name').value.trim();
+  if (!name) return;
+  state.games.unshift({ id: uid(), name, when: document.getElementById('game-when').value.trim() });
+  document.getElementById('game-name').value = '';
+  document.getElementById('game-when').value = '';
+  saveState(); renderGames();
+}
+function removeGame(id) {
+  state.games = state.games.filter(g => g.id !== id);
+  state.notes = state.notes.filter(n => n.gameId !== id);
+  state.checklist = state.checklist.filter(c => c.gameId !== id);
+  saveState(); renderGames(); renderNotes(); renderChecklist();
+}
+function renderGames() {
+  const el = document.getElementById('games-list');
+  if (!state.games.length) { el.innerHTML = '<div class="empty">No games on your watchlist</div>'; return; }
+  el.innerHTML = state.games.map(g => {
+    const noteCount = state.notes.filter(n => n.gameId === g.id).length;
+    const checkCount = state.checklist.filter(c => c.gameId === g.id).length;
+    const bits = [];
+    if (g.when) bits.push(escapeHtml(g.when));
+    if (noteCount) bits.push(noteCount + ' note' + (noteCount > 1 ? 's' : ''));
+    if (checkCount) bits.push(checkCount + ' question' + (checkCount > 1 ? 's' : ''));
+    return `<div class="game-card" onclick="openGameDetail('${g.id}')">
+      <span class="del" onclick="event.stopPropagation(); removeGame('${g.id}')">✕</span>
+      <div class="name">${escapeHtml(g.name)}</div>
+      ${bits.length ? `<div class="sub">${bits.join(' · ')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Game detail (linked notes + checklist) ---------- */
+function openGameDetail(gameId) {
+  const game = state.games.find(g => g.id === gameId);
+  if (!game) return;
+  currentDetailGame = game;
+  document.getElementById('detail-game-name').textContent = game.name;
+  renderDetailNotes();
+  renderDetailChecklist();
+  document.getElementById('game-detail-modal').classList.add('active');
+}
+function closeGameDetail() {
+  document.getElementById('game-detail-modal').classList.remove('active');
+  currentDetailGame = null;
+  renderGames();
+}
+function addNoteFromDetail() {
+  if (!currentDetailGame) return;
+  const text = document.getElementById('detail-note-text').value.trim();
+  if (!text) return;
+  state.notes.unshift({ id: uid(), game: currentDetailGame.name, gameId: currentDetailGame.id, text });
+  document.getElementById('detail-note-text').value = '';
+  saveState(); renderDetailNotes(); renderNotes();
+}
+function removeNoteFromDetail(id) {
+  state.notes = state.notes.filter(n => n.id !== id);
+  saveState(); renderDetailNotes(); renderNotes();
+}
+function renderDetailNotes() {
+  const el = document.getElementById('detail-notes-list');
+  const list = state.notes.filter(n => n.gameId === currentDetailGame.id);
+  if (!list.length) { el.innerHTML = '<div class="empty">No notes for this game yet</div>'; return; }
+  el.innerHTML = list.map(n => `
+    <div class="note-card">
+      <span class="del" onclick="removeNoteFromDetail('${n.id}')">✕</span>
+      <div class="text">${escapeHtml(n.text)}</div>
+    </div>
+  `).join('');
+}
+function addCheckFromDetail() {
+  if (!currentDetailGame) return;
+  const text = document.getElementById('detail-check-text').value.trim();
+  if (!text) return;
+  state.checklist.push({ id: uid(), text, checked: false, gameId: currentDetailGame.id });
+  document.getElementById('detail-check-text').value = '';
+  saveState(); renderDetailChecklist(); renderChecklist();
+}
+function toggleCheckFromDetail(id) {
+  const item = state.checklist.find(c => c.id === id);
+  if (item) item.checked = !item.checked;
+  saveState(); renderDetailChecklist();
+}
+function removeCheckFromDetail(id) {
+  state.checklist = state.checklist.filter(c => c.id !== id);
+  saveState(); renderDetailChecklist(); renderChecklist();
+}
+function renderDetailChecklist() {
+  const el = document.getElementById('detail-checklist-list');
+  const list = state.checklist.filter(c => c.gameId === currentDetailGame.id);
+  if (!list.length) { el.innerHTML = '<div class="empty">No questions for this game yet</div>'; return; }
+  el.innerHTML = list.map(c => `
+    <div class="check-item ${c.checked ? 'checked' : ''}">
+      <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="toggleCheckFromDetail('${c.id}')">
+      <div class="qtext">${escapeHtml(c.text)}</div>
+      <span class="del" onclick="removeCheckFromDetail('${c.id}')">✕</span>
+    </div>
+  `).join('');
+}
+
+/* ---------- Notes ---------- */
+function addNote() {
+  const game = document.getElementById('note-game').value.trim();
+  const text = document.getElementById('note-text').value.trim();
+  if (!game || !text) return;
+  state.notes.unshift({ id: uid(), game, text });
+  document.getElementById('note-game').value = '';
+  document.getElementById('note-text').value = '';
+  saveState(); renderNotes();
+}
+function removeNote(id) {
+  state.notes = state.notes.filter(n => n.id !== id);
+  saveState(); renderNotes();
+}
+function renderNotes() {
+  const el = document.getElementById('notes-list');
+  if (!state.notes.length) { el.innerHTML = '<div class="empty">No notes yet</div>'; return; }
+  el.innerHTML = state.notes.map(n => `
+    <div class="note-card">
+      <span class="del" onclick="removeNote('${n.id}')">✕</span>
+      <div class="game">${escapeHtml(n.game)}</div>
+      <div class="text">${escapeHtml(n.text)}</div>
+    </div>
+  `).join('');
+}
+
+/* ---------- Checklist (global, not tied to a specific game) ---------- */
+function addCheck() {
+  const text = document.getElementById('check-text').value.trim();
+  if (!text) return;
+  state.checklist.push({ id: uid(), text, checked: false });
+  document.getElementById('check-text').value = '';
+  saveState(); renderChecklist();
+}
+function removeCheck(id) {
+  state.checklist = state.checklist.filter(c => c.id !== id);
+  saveState(); renderChecklist();
+}
+function toggleCheck(id) {
+  const item = state.checklist.find(c => c.id === id);
+  if (item) item.checked = !item.checked;
+  saveState(); renderChecklist();
+}
+function renderChecklist() {
+  const el = document.getElementById('checklist-list');
+  const list = state.checklist.filter(c => !c.gameId);
+  if (!list.length) { el.innerHTML = '<div class="empty">No questions added yet</div>'; return; }
+  el.innerHTML = list.map(c => `
+    <div class="check-item ${c.checked ? 'checked' : ''}">
+      <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="toggleCheck('${c.id}')">
+      <div class="qtext">${escapeHtml(c.text)}</div>
+      <span class="del" onclick="removeCheck('${c.id}')">✕</span>
+    </div>
+  `).join('');
+}
+
+/* ---------- Backup ---------- */
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `two-books-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      state = Object.assign({ positions: [], trades: [], gaps: [], games: [], notes: [], checklist: [] }, parsed);
+      saveState(); renderAll();
+    } catch (e) {
+      alert('That file could not be read as a backup.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderAll() {
+  renderStats();
+  renderSparkline();
+  renderPositions();
+  renderTrades();
+  renderGaps();
+  renderGames();
+  renderNotes();
+  renderChecklist();
+}
+
+window.addEventListener('resize', () => renderSparkline());
+
+loadState();
+</script>
+</body>
+</html>
